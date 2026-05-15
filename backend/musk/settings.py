@@ -33,6 +33,8 @@ INSTALLED_APPS = [
     "corsheaders",
     # Local
     "core.auth.apps.AuthConfig",
+    "core.config.apps.ConfigConfig",
+    "core.storage.apps.StorageConfig",
 ]
 
 MIDDLEWARE = [
@@ -123,3 +125,7 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
+
+# Media files
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR.parent / "media"
