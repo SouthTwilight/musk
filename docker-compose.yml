@@ -1,0 +1,17 @@
+services:
+  musk:
+    build: .
+    container_name: musk
+    ports:
+      - "8080:80"
+    volumes:
+      - ./data:/app/data
+      - ./media:/app/media
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-docker-dev-change-me}
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - GLM_API_KEY=${GLM_API_KEY:-}
+      - AI_DEFAULT_MODEL=${AI_DEFAULT_MODEL:-deepseek}
+    restart: unless-stopped
