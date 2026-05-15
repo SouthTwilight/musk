@@ -28,6 +28,11 @@ const router = createRouter({
           name: "settings",
           component: SettingsView,
         },
+        {
+          path: "ai",
+          name: "ai",
+          component: () => import("@/views/AiChatView.vue"),
+        },
       ],
     },
   ],

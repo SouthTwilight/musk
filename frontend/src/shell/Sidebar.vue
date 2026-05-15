@@ -13,9 +13,31 @@
         :class="['nav-item', { active: isActive(item.path) }]"
       >
         <span class="nav-icon">{{ item.icon }}</span>
-        <span v-if="!appStore.sidebarCollapsed" class="nav-label">{{
-          item.label
-        }}</span>
+        <span v-if="!appStore.sidebarCollapsed" class="nav-label">{{ item.label }}</span>
+      </router-link>
+
+      <div v-if="moduleItems.length > 0" class="nav-divider"></div>
+
+      <router-link
+        v-for="item in moduleItems"
+        :key="item.path"
+        :to="item.path"
+        :class="['nav-item', { active: isActive(item.path) }]"
+      >
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span v-if="!appStore.sidebarCollapsed" class="nav-label">{{ item.label }}</span>
+      </router-link>
+
+      <div class="nav-divider"></div>
+
+      <router-link
+        v-for="item in fixedItems"
+        :key="item.path"
+        :to="item.path"
+        :class="['nav-item', { active: isActive(item.path) }]"
+      >
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span v-if="!appStore.sidebarCollapsed" class="nav-label">{{ item.label }}</span>
       </router-link>
     </nav>
 
@@ -28,16 +50,36 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useAppStore } from "@/stores/app";
+import { fetchModules, type ModuleInfo } from "@/core/module";
 
 const route = useRoute();
 const appStore = useAppStore();
 
-const menuItems = [
+// 基础菜单（始终存在）
+const menuItems = ref([
   { path: "/", icon: "🏠", label: "首页" },
+]);
+
+// 动态模块菜单
+const moduleItems = ref<{ path: string; icon: string; label: string }[]>([]);
+
+// 固定底部菜单
+const fixedItems = [
+  { path: "/ai", icon: "🤖", label: "AI 助手" },
   { path: "/settings", icon: "⚙️", label: "设置" },
 ];
+
+onMounted(async () => {
+  const modules = await fetchModules();
+  moduleItems.value = modules.map((m) => ({
+    path: m.url_prefix.replace(/^\/api\//, "/").replace(/\/$/, ""),
+    icon: m.icon,
+    label: m.display_name,
+  }));
+});
 
 function isActive(path: string): boolean {
   if (path === "/") return route.path === "/";
@@ -125,6 +167,12 @@ function isActive(path: string): boolean {
 .nav-label {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.nav-divider {
+  height: 1px;
+  background: var(--border-secondary, #21262d);
+  margin: 8px 12px;
 }
 
 .sidebar-footer {
