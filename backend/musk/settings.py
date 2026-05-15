@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "core.auth.apps.AuthConfig",
     "core.config.apps.ConfigConfig",
     "core.storage.apps.StorageConfig",
+    "core.ai.apps.AiConfig",
 ]
 
 MIDDLEWARE = [
@@ -70,6 +71,8 @@ WSGI_APPLICATION = "musk.wsgi.application"
 
 # Database
 db_dir = os.environ.get("DB_DIR", str(BASE_DIR.parent / "data"))
+if not os.path.isabs(db_dir):
+    db_dir = str(BASE_DIR.parent / db_dir)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -129,3 +132,42 @@ CORS_ALLOWED_ORIGINS = [
 # Media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR.parent / "media"
+
+# AI Configuration
+AI_DEFAULT_MODEL = os.environ.get("AI_DEFAULT_MODEL", "deepseek")
+
+# Module Layer — 扫描并注册模块
+import module_layer.scanner as _scanner
+_SCANNED = False
+
+
+def _ensure_modules_scanned():
+    global _SCANNED
+    if not _SCANNED:
+        _SCANNED = True
+        _scanner.scan_modules()
+
+
+_ensure_modules_scanned()
+
+# 动态添加已注册模块到 INSTALLED_APPS
+for _info in _scanner.registry.all():
+    _app_config = f"apps.{_info.name}.apps.{_info.name.capitalize()}Config"
+    _app_path = f"apps.{_info.name}"
+    if _app_config not in INSTALLED_APPS and _app_path not in INSTALLED_APPS:
+        try:
+            # Try to use the AppConfig class
+            INSTALLED_APPS.append(_app_config)
+        except Exception:
+            INSTALLED_APPS.append(_app_path)
+
+# 动态添加模块数据库
+_MODULE_DBS = _scanner.get_module_databases()
+for _alias, _config in _MODULE_DBS.items():
+    DATABASES[_alias] = _config
+
+# 数据库路由器
+DATABASE_ROUTERS = ["module_layer.db_router.ModuleRouter"]
+
+# 将扫描到的模块 URL 动态包含
+# (在 urls.py 中处理)
