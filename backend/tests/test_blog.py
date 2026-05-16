@@ -261,3 +261,58 @@ def _get_db_helper():
     from module_layer.registry import registry
     info = registry.get("blog")
     return info.db_alias if info else "default"
+
+
+# ── Fetcher 测试 ──
+
+from unittest.mock import patch, MagicMock
+
+
+@pytest.mark.django_db(databases="__all__")
+class TestFetcher:
+    databases = "__all__"
+
+    def test_fetch_article_success(self):
+        from apps.blog.services.fetcher import fetch_article
+        mock_html = "<html><head><title>Test</title></head><body><p>Hello world article content here.</p></body></html>"
+        with patch("httpx.get") as mock_get:
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.text = mock_html
+            mock_resp.raise_for_status = MagicMock()
+            mock_get.return_value = mock_resp
+            with patch("trafilatura.extract", return_value="Hello world article content here."):
+                result = fetch_article("https://example.com/test")
+                assert result["status"] == "pending"
+                assert result["raw_text"] == "Hello world article content here."
+
+    def test_fetch_article_404(self):
+        from apps.blog.services.fetcher import fetch_article
+        with patch("httpx.get") as mock_get:
+            mock_get.side_effect = Exception("404 Not Found")
+            result = fetch_article("https://example.com/404")
+            assert result["status"] == "failed"
+
+    def test_fetch_article_unparsable(self):
+        from apps.blog.services.fetcher import fetch_article
+        mock_html = "<html><body></body></html>"
+        with patch("httpx.get") as mock_get:
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.text = mock_html
+            mock_resp.raise_for_status = MagicMock()
+            mock_get.return_value = mock_resp
+            with patch("trafilatura.extract", return_value=None):
+                result = fetch_article("https://example.com/empty")
+                assert result["status"] == "unparsable"
+                assert "raw_html" in result
+
+    def test_fetch_and_store_dedup(self):
+        from apps.blog.models import Article
+        from apps.blog.services.fetcher import fetch_and_store_article
+        Article.objects.using(_get_db_helper()).create(
+            title="Existing", url="https://example.com/existing",
+            status="done", source_name="Test",
+        )
+        result = fetch_and_store_article("https://example.com/existing")
+        assert result["status"] == "duplicate"
