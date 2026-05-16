@@ -33,6 +33,14 @@ const router = createRouter({
           name: "ai",
           component: () => import("@/views/AiChatView.vue"),
         },
+        {
+          path: "blog",
+          children: [
+            { path: "", name: "blog", component: () => import("@/views/blog/BlogListView.vue") },
+            { path: "settings", name: "blog-settings", component: () => import("@/views/blog/settings/BlogSettingsView.vue") },
+            { path: ":id", name: "blog-article", component: () => import("@/views/blog/ArticleDetailView.vue") },
+          ],
+        },
       ],
     },
   ],
