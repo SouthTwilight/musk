@@ -316,3 +316,67 @@ class TestFetcher:
         )
         result = fetch_and_store_article("https://example.com/existing")
         assert result["status"] == "duplicate"
+
+
+# ── Processor 测试 ──
+
+
+@pytest.mark.django_db(databases="__all__")
+class TestProcessor:
+    def test_process_article_low_score(self):
+        from apps.blog.models import Article, Category
+        from apps.blog.services.processor import process_article
+        cat = Category.objects.using(_get_db_helper()).create(
+            name="TestCat", icon="T",
+            score_thresholds={"low": [1, 3], "mid": [4, 6], "high": [7, 10]},
+        )
+        article = Article.objects.using(_get_db_helper()).create(
+            title="Low Score", url="https://example.com/low-unique-1",
+            category=cat, source_name="Test", status="pending",
+            raw_text="Some article text",
+        )
+        with patch("apps.blog.services.processor._call_ai") as mock_ai:
+            mock_ai.side_effect = ['{"score": 2, "tags": []}', "Short summary"]
+            process_article(article)
+        article.refresh_from_db()
+        assert article.score == 2
+        assert article.status == "done"
+        assert article.summary != ""
+
+    def test_process_article_high_score(self):
+        from apps.blog.models import Article, Category
+        from apps.blog.services.processor import process_article
+        cat = Category.objects.using(_get_db_helper()).create(
+            name="HighCat", icon="H",
+            score_thresholds={"low": [1, 3], "mid": [4, 6], "high": [7, 10]},
+        )
+        article = Article.objects.using(_get_db_helper()).create(
+            title="High Score", url="https://example.com/high-unique-1",
+            category=cat, source_name="Test", status="pending",
+            raw_text="Excellent deep technical article",
+        )
+        with patch("apps.blog.services.processor._call_ai") as mock_ai:
+            mock_ai.side_effect = [
+                '{"score": 9, "tags": ["AI"]}',
+                "Summary text",
+                '["Point 1", "Point 2"]',
+                "Deep analysis content",
+            ]
+            process_article(article)
+        article.refresh_from_db()
+        assert article.score == 9
+        assert article.deep_analysis != ""
+
+    def test_process_article_no_category(self):
+        from apps.blog.models import Article
+        from apps.blog.services.processor import process_article
+        article = Article.objects.using(_get_db_helper()).create(
+            title="No Cat", url="https://example.com/nocat-unique-1",
+            source_name="Test", status="pending",
+            raw_text="Some text",
+        )
+        with patch("apps.blog.services.processor._call_ai") as mock_ai:
+            mock_ai.side_effect = ['{"score": 5}', "Summary"]
+            process_article(article)
+        article.refresh_from_db()
+        assert article.status == "done"
