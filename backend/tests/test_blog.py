@@ -216,7 +216,14 @@ class TestBlogConfigAPI(TestCase):
     databases = "__all__"
 
     def setUp(self):
-        self.client = _register_client(self.id())
+        self.client = APIClient()
+        reg = self.client.post(
+            "/api/auth/register/",
+            {"username": f"cfguser_{self.id()}", "password": "testpass123"},
+            format="json",
+        )
+        self.token = reg.json()["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token}")
 
     def test_get_config_defaults(self):
         resp = self.client.get("/api/blog/config/", format="json")
@@ -241,18 +248,22 @@ class TestRSSSourceLimit(TestCase):
     databases = "__all__"
 
     def setUp(self):
-        self.client = _register_client(self.id())
+        self.client = APIClient()
+        reg = self.client.post(
+            "/api/auth/register/",
+            {"username": f"limituser_{self.id()}", "password": "testpass123"},
+            format="json",
+        )
+        self.token = reg.json()["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token}")
 
     def test_rss_source_limit(self):
-        # 设置上限为 2
         from apps.blog.models import BlogConfig
         BlogConfig.objects.using(_get_db_helper()).update_or_create(
             key="rss_source_limit", defaults={"value": 2}
         )
-        # 创建 2 个源
         self.client.post("/api/blog/rss-sources/", {"name": "S1", "url": "https://s1.com/feed"}, format="json")
         self.client.post("/api/blog/rss-sources/", {"name": "S2", "url": "https://s2.com/feed"}, format="json")
-        # 第 3 个应该被拒绝
         resp = self.client.post("/api/blog/rss-sources/", {"name": "S3", "url": "https://s3.com/feed"}, format="json")
         assert resp.status_code == 400
 
