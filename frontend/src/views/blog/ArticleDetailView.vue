@@ -126,7 +126,8 @@ function startEdit() {
   let kpText = "";
   if (a.key_points) {
     try {
-      const parsed = JSON.parse(a.key_points);
+      const cleaned = stripMdFence(a.key_points);
+      const parsed = JSON.parse(cleaned);
       kpText = Array.isArray(parsed) ? parsed.join("\n") : a.key_points;
     } catch { kpText = a.key_points; }
   }
@@ -172,11 +173,16 @@ const scoreClass = computed(() => {
   return "score-low";
 });
 
+function stripMdFence(text: string): string {
+  return text.replace(/^```[\w]*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+}
+
 const parsedKeyPoints = computed(() => {
   const kp = article.value?.key_points;
   if (!kp) return [];
   try {
-    const parsed = JSON.parse(kp);
+    const cleaned = stripMdFence(kp);
+    const parsed = JSON.parse(cleaned);
     return Array.isArray(parsed) ? parsed : [];
   } catch { return []; }
 });
