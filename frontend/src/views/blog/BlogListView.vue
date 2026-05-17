@@ -20,14 +20,18 @@
     </div>
     <div v-else class="waterfall">
       <div v-for="article in blogStore.articles" :key="article.id"
-        :class="['article-card', { 'low-score': article.score && article.score <= 3 }]"
-        @click="goDetail(article.id)">
+        :class="['article-card', cardClass(article)]"
+        @click="article.status !== 'failed' && goDetail(article.id)">
         <div class="card-header">
           <span class="card-meta">{{ article.category_icon }} {{ article.category_name }}</span>
-          <span v-if="article.score" class="card-score" :class="scoreClass(article.score)">⭐ {{ article.score }}</span>
+          <span v-if="article.status === 'failed'" class="card-status status-failed">✗ 获取失败</span>
+          <span v-else-if="article.status === 'unparsable'" class="card-status status-unparsable">⚠ 无法解析</span>
+          <span v-else-if="article.score" class="card-score" :class="scoreClass(article.score)">⭐ {{ article.score }}</span>
         </div>
         <h3 class="card-title">{{ article.title }}</h3>
-        <p class="card-summary">{{ article.summary?.slice(0, 80) || '暂无总结' }}</p>
+        <p v-if="article.status === 'failed'" class="card-summary failed-reason">链接无法访问，已收录到无效列表</p>
+        <p v-else-if="article.status === 'unparsable'" class="card-summary">点击查看原文内容</p>
+        <p v-else class="card-summary">{{ article.summary?.slice(0, 80) || '暂无总结' }}</p>
         <div class="card-footer">
           <span class="card-source">{{ article.source_name }}</span>
           <span class="card-date">{{ formatDate(article.created_at) }}</span>
@@ -70,6 +74,13 @@ function scoreClass(score: number) {
   return "score-low";
 }
 
+function cardClass(article: { status: string; score: number | null }) {
+  if (article.status === "failed") return "card-failed";
+  if (article.status === "unparsable") return "card-unparsable";
+  if (article.score && article.score <= 3) return "low-score";
+  return "";
+}
+
 function formatDate(dateStr: string) {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -99,6 +110,16 @@ function formatDate(dateStr: string) {
 }
 .article-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--card-shadow); }
 .article-card.low-score { opacity: 0.6; }
+.article-card.card-failed {
+  opacity: 0.5; border-left: 3px solid var(--error); cursor: default;
+}
+.article-card.card-unparsable {
+  border-left: 3px solid var(--warning);
+}
+.card-status { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 3px; }
+.status-failed { color: var(--error); background: rgba(248, 81, 73, 0.1); }
+.status-unparsable { color: var(--warning); background: rgba(210, 153, 34, 0.1); }
+.failed-reason { color: var(--error); }
 .card-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
 .card-meta { font-size: 12px; color: var(--text-secondary); }
 .card-score { font-size: 12px; font-weight: 600; }

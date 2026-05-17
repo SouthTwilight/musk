@@ -22,6 +22,11 @@ def _get_db():
     return info.db_alias if info else "default"
 
 
+_LOGIN_INDICATORS = ("login", "signin", "sign-in", "accounts/page", "auth")
+
+_MIN_CONTENT_LENGTH = 200  # 正文最短字符数，低于此视为无效
+
+
 def fetch_article(url: str) -> dict:
     """抓取单篇文章，返回结果字典。"""
     try:
@@ -31,6 +36,16 @@ def fetch_article(url: str) -> dict:
         logger.warning("Fetch failed for %s: %s", url, e)
         return {"status": "failed", "reason": str(e)[:200]}
 
+    # 检测重定向到登录页
+    final_url = str(resp.url).lower()
+    original_host = urlparse(url).netloc.lower()
+    final_host = urlparse(str(resp.url)).netloc.lower()
+    if final_host != original_host:
+        for indicator in _LOGIN_INDICATORS:
+            if indicator in final_url:
+                logger.warning("Redirected to login page for %s → %s", url, resp.url)
+                return {"status": "failed", "reason": "redirected to login page", "url": url}
+
     html = resp.text
 
     try:
@@ -38,7 +53,7 @@ def fetch_article(url: str) -> dict:
     except Exception:
         text = None
 
-    if not text:
+    if not text or len(text.strip()) < _MIN_CONTENT_LENGTH:
         return {
             "status": "unparsable",
             "raw_html": html,
@@ -75,14 +90,7 @@ def fetch_and_store_article(url: str, category_id=None) -> dict:
     if FailedURL.objects.using(db).filter(url=url).exists():
         return {"status": "duplicate_failed", "url": url}
 
-    result = fetch_article(url)
-
-    if result["status"] == "failed":
-        FailedURL.objects.using(db).create(
-            url=url, reason=result.get("reason", "unknown"),
-        )
-        return result
-
+    # 解析分类（在 fetch 之前，failed 文章也需要）
     from apps.blog.models import Category
     category = None
     if category_id:
@@ -90,6 +98,21 @@ def fetch_and_store_article(url: str, category_id=None) -> dict:
             category = Category.objects.using(db).get(pk=category_id)
         except Category.DoesNotExist:
             pass
+
+    result = fetch_article(url)
+
+    if result["status"] == "failed":
+        FailedURL.objects.using(db).create(
+            url=url, reason=result.get("reason", "unknown"),
+        )
+        Article.objects.using(db).create(
+            title=result.get("title", url),
+            url=url,
+            status="failed",
+            source_name=_extract_source_name(url),
+            category=category,
+        )
+        return result
 
     article = Article.objects.using(db).create(
         title=result.get("title", url),

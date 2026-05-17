@@ -41,7 +41,11 @@
       </div>
 
       <div class="source-panel">
-        <div v-if="article.status === 'unparsable'" class="unparsable-notice">
+        <div v-if="article.status === 'failed'" class="unparsable-notice">
+          <p>✗ 链接无法访问</p>
+          <a :href="article.url" target="_blank" class="open-link">尝试在新标签页打开 →</a>
+        </div>
+        <div v-else-if="article.status === 'unparsable' && !iframeOk" class="unparsable-notice">
           <p>⚠️ 无法提取正文内容</p>
           <a :href="article.url" target="_blank" class="open-link">在新标签页打开原文 →</a>
         </div>

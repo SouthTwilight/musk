@@ -292,10 +292,10 @@ class TestFetcher:
             mock_resp.text = mock_html
             mock_resp.raise_for_status = MagicMock()
             mock_get.return_value = mock_resp
-            with patch("trafilatura.extract", return_value="Hello world article content here."):
+            with patch("trafilatura.extract", return_value="A" * 250):
                 result = fetch_article("https://example.com/test")
                 assert result["status"] == "pending"
-                assert result["raw_text"] == "Hello world article content here."
+                assert result["raw_text"] == "A" * 250
 
     def test_fetch_article_404(self):
         from apps.blog.services.fetcher import fetch_article
