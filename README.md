@@ -19,6 +19,7 @@
 - **可折叠侧边栏** — 响应式布局，220px / 60px 平滑过渡
 - **模块自动扫描** — 放入 `apps/` 目录即可自动注册路由、菜单、数据库
 - **AI 中枢** — 多模型代理、会话管理、Prompt 模板、SSE 流式输出
+- **知识笔记模块** — RSS/URL 文章抓取、AI 二级过滤、1:2 分栏阅读、MD 导出
 - **独立数据库隔离** — 每个模块使用独立 SQLite 文件
 - **Docker 一键部署** — 单容器（Nginx + Gunicorn + SQLite）
 
@@ -30,7 +31,7 @@ musk/
 │   └── src/
 │       ├── shell/            # 布局壳（Sidebar、TopBar、AppLayout）
 │       ├── core/             # API 层、模块注册表
-│       ├── stores/           # Pinia 状态（auth、app、ai）
+│       ├── stores/           # Pinia 状态（auth、app、ai、blog）
 │       ├── views/            # 页面组件
 │       ├── router/           # 路由配置 + 守卫
 │       └── styles/           # CSS Variables 主题系统
@@ -47,7 +48,12 @@ musk/
 │   │   └── db_router.py      # 多数据库路由器
 │   ├── apps/                 # 业务模块目录
 │   │   └── demo/             # 示例模块
-│   └── tests/                # 测试（24 tests）
+│   │   └── blog/             # 知识笔记模块
+│   │       ├── services/     # 抓取/处理/导出/调度
+│   │       ├── models.py     # 6 张数据表
+│   │       ├── views.py      # 16 个 API 端点
+│   │       └── scheduler.py  # APScheduler 定时抓取
+│   └── tests/                # 测试（49 tests）
 ├── docker/
 │   ├── Dockerfile            # 多阶段构建
 │   ├── nginx.conf            # Nginx 配置
@@ -124,6 +130,22 @@ npm run dev
 | `/api/ai/templates/` | GET/POST | Prompt 模板 |
 | `/api/modules/` | GET | 已注册模块列表 |
 
+### 博客引擎（/api/blog/）
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/blog/articles/` | GET | 文章列表（支持分类/分数/状态筛选） |
+| `/api/blog/articles/:id/` | GET | 文章详情（含 AI 内容 + 原文缓存） |
+| `/api/blog/articles/fetch_url/` | POST | 手动 URL 抓取 |
+| `/api/blog/articles/:id/export/` | POST | 导出为 Markdown |
+| `/api/blog/articles/:id/reprocess/` | POST | 重新 AI 处理 |
+| `/api/blog/categories/` | GET/POST | 分类管理 |
+| `/api/blog/rss-sources/` | GET/POST | RSS 源管理（上限 40） |
+| `/api/blog/config/` | GET/PUT | 模块配置（模型/分档/评分维度） |
+| `/api/blog/scheduler/status/` | GET | 调度状态 |
+| `/api/blog/scheduler/fetch_all/` | POST | 手动全量抓取 |
+| `/api/blog/failed-urls/` | GET | 无效链接列表 |
+
 ## 模块开发
 
 创建新模块只需在 `backend/apps/` 下新建目录并编写 `manifest.py`：
@@ -150,7 +172,7 @@ source .venv/Scripts/activate
 python -m pytest tests/ -v
 ```
 
-当前测试覆盖：认证（10）、配置（5）、模块层（3）、AI（6），共 24 个测试。
+当前测试覆盖：认证（10）、配置（5）、模块层（3）、AI（6）、博客模块（25），共 49 个测试。
 
 ## 开发进度
 
@@ -158,7 +180,7 @@ python -m pytest tests/ -v
 - [x] **Sprint 2** — 框架壳 + 暗夜科技主题 + 背景图
 - [x] **Sprint 3** — 模块应用层 + AI 中枢 + 示例模块
 - [x] **Sprint 4** — Docker 部署 + 集成验证
-- [ ] **Phase 2** — 博客引擎模块
+- [x] **Phase 2** — 博客引擎模块（RSS 抓取 + AI 二级过滤 + 笔记阅读 + MD 导出）
 - [ ] **Phase 3** — 项目看板模块
 - [ ] **Phase 4** — 看板工具模块（金融股票分析）
 
