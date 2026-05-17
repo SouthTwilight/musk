@@ -47,6 +47,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "musk.middleware.RequestLoggingMiddleware",
 ]
 
 ROOT_URLCONF = "musk.urls"
@@ -135,6 +136,129 @@ MEDIA_ROOT = BASE_DIR.parent / "media"
 
 # AI Configuration
 AI_DEFAULT_MODEL = os.environ.get("AI_DEFAULT_MODEL", "deepseek")
+
+# Logging — 日志落盘
+LOG_DIR = os.environ.get("LOG_DIR", str(BASE_DIR.parent / "logs"))
+if not os.path.isabs(LOG_DIR):
+    LOG_DIR = str(BASE_DIR.parent / LOG_DIR)
+os.makedirs(LOG_DIR, exist_ok=True)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname:7s} {name} | {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname:7s} {message}",
+            "style": "{",
+        },
+    },
+    "filters": {
+        "require_debug_true": {
+            "()": "django.utils.log.RequireDebugTrue",
+        },
+        "require_debug_false": {
+            "()": "django.utils.log.RequireDebugFalse",
+        },
+    },
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+        # 主日志 — 所有模块
+        "file_all": {
+            "level": "DEBUG",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "musk.log"),
+            "maxBytes": 10 * 1024 * 1024,  # 10 MB
+            "backupCount": 5,
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
+        # 错误日志 — 仅 WARNING 及以上
+        "file_error": {
+            "level": "WARNING",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "musk-error.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
+        # 博客模块专用日志
+        "file_blog": {
+            "level": "DEBUG",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "blog.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
+        # AI 模块专用日志
+        "file_ai": {
+            "level": "DEBUG",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "ai.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 3,
+            "formatter": "verbose",
+            "encoding": "utf-8",
+        },
+    },
+    "loggers": {
+        # Django 框架
+        "django": {
+            "handlers": ["console", "file_all"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console", "file_error"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        # Musk 核心
+        "core": {
+            "handlers": ["console", "file_all"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "core.ai": {
+            "handlers": ["console", "file_ai"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        # 模块应用层
+        "module_layer": {
+            "handlers": ["console", "file_all"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        # 博客引擎
+        "apps.blog": {
+            "handlers": ["console", "file_blog"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        # 请求日志
+        "musk.request": {
+            "handlers": ["console", "file_all"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+    # root logger — 兜底
+    "root": {
+        "handlers": ["console", "file_all"],
+        "level": "INFO",
+    },
+}
 
 # Module Layer — 扫描并注册模块
 import module_layer.scanner as _scanner

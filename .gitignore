@@ -12,6 +12,7 @@ env/
 *.db
 data/
 media/
+logs/
 
 # Node
 node_modules/
