@@ -25,6 +25,13 @@
         <div class="article-meta">
           <span>Source: <a :href="article.url" target="_blank">{{ article.source_name }}</a></span>
           <span v-if="article.score" class="score-badge" :class="scoreClass">⭐ {{ article.score }}/10</span>
+          <template v-if="editing">
+            <select v-model="form.categoryId" class="category-select">
+              <option :value="null">未分类</option>
+              <option v-for="cat in blogStore.categories" :key="cat.id" :value="cat.id">{{ cat.icon }} {{ cat.name }}</option>
+            </select>
+          </template>
+          <span v-else class="category-badge" @click="startEdit">{{ article.category_name ? `${article.category_icon} ${article.category_name}` : '未分类（点击编辑）' }}</span>
         </div>
 
         <!-- Summary -->
@@ -111,6 +118,7 @@ const form = ref({
   summary: "",
   keyPointsText: "",
   deepAnalysis: "",
+  categoryId: null as number | null,
 });
 
 function startEdit() {
@@ -121,6 +129,7 @@ function startEdit() {
     summary: a.summary || "",
     keyPointsText: a.key_points || "",
     deepAnalysis: a.deep_analysis || "",
+    categoryId: a.category,
   };
   form.value = {
     title: a.title,
@@ -150,6 +159,7 @@ async function handleSave() {
     summary: form.value.summary,
     key_points: form.value.keyPointsText,
     deep_analysis: form.value.deepAnalysis,
+    category: form.value.categoryId,
   });
   editing.value = false;
 }
@@ -162,6 +172,7 @@ const scoreClass = computed(() => {
 });
 
 onMounted(() => {
+  blogStore.fetchCategories();
   blogStore.fetchArticle(Number(route.params.id));
   iframeOk.value = true;
 });
@@ -205,8 +216,11 @@ async function handleReprocess() {
 .detail-body { display: flex; flex: 1; overflow: hidden; }
 .note-panel { width: 33.33%; border-right: 1px solid var(--border-primary); padding: 24px; overflow-y: auto; }
 .article-title { font-size: 20px; color: var(--text-primary); margin-bottom: 12px; line-height: 1.4; }
-.article-meta { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; font-size: 13px; color: var(--text-secondary); }
+.article-meta { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; font-size: 13px; color: var(--text-secondary); flex-wrap: wrap; }
 .article-meta a { color: var(--accent); }
+.category-badge { cursor: pointer; padding: 2px 8px; border-radius: 12px; background: rgba(110,118,129,0.1); transition: background 0.15s; }
+.category-badge:hover { background: rgba(110,118,129,0.2); }
+.category-select { padding: 4px 8px; background: var(--input-bg); border: 1px solid var(--accent); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; }
 .score-badge { font-weight: 600; }
 .score-high { color: #bc8cff; }
 .score-mid { color: var(--accent); }
