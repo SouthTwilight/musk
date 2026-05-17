@@ -76,7 +76,7 @@
           <a :href="article.url" target="_blank" class="open-link">在新标签页打开原文 →</a>
         </div>
         <template v-else>
-          <iframe v-if="iframeOk" :src="article.url" class="source-iframe" @error="iframeOk = false" />
+          <iframe v-if="iframeOk" :src="article.url" class="source-iframe" sandbox="allow-same-origin allow-popups" @error="iframeOk = false" />
           <div v-else class="cached-content">
             <div class="cached-notice">⚠️ iframe 加载失败，展示缓存内容</div>
             <pre class="cached-text">{{ article.raw_text }}</pre>
