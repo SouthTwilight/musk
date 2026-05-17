@@ -51,14 +51,17 @@
           <button class="del-btn" @click="blogStore.deleteCategory(cat.id)">删除</button>
         </div>
         <div class="thresholds">
-          <label>低分上限: <input type="number" :value="cat.score_thresholds?.low?.[1]" class="threshold-input" disabled /></label>
-          <label>中分上限: <input type="number" :value="cat.score_thresholds?.mid?.[1]" class="threshold-input" disabled /></label>
-          <label>高分上限: <input type="number" :value="cat.score_thresholds?.high?.[1]" class="threshold-input" disabled /></label>
+          <label>低分: <input type="number" class="threshold-input" :value="cat.score_thresholds?.low?.[0]" @change="updateThreshold(cat, 'low', 0, $event)" /> - <input type="number" class="threshold-input" :value="cat.score_thresholds?.low?.[1]" @change="updateThreshold(cat, 'low', 1, $event)" /></label>
+          <label>中分: <input type="number" class="threshold-input" :value="cat.score_thresholds?.mid?.[0]" @change="updateThreshold(cat, 'mid', 0, $event)" /> - <input type="number" class="threshold-input" :value="cat.score_thresholds?.mid?.[1]" @change="updateThreshold(cat, 'mid', 1, $event)" /></label>
+          <label>高分: <input type="number" class="threshold-input" :value="cat.score_thresholds?.high?.[0]" @change="updateThreshold(cat, 'high', 0, $event)" /> - <input type="number" class="threshold-input" :value="cat.score_thresholds?.high?.[1]" @change="updateThreshold(cat, 'high', 1, $event)" /></label>
         </div>
       </div>
       <div v-if="showAddCat" class="inline-form">
         <input v-model="newCat.name" placeholder="分类名" class="form-input" />
         <input v-model="newCat.icon" placeholder="图标 emoji" class="form-input" />
+        <label class="threshold-form-label">低分: <input type="number" v-model.number="newCat.lowMax" class="threshold-input" /></label>
+        <label class="threshold-form-label">中分: <input type="number" v-model.number="newCat.midMax" class="threshold-input" /></label>
+        <label class="threshold-form-label">高分: <input type="number" v-model.number="newCat.highMax" class="threshold-input" /></label>
         <button class="btn-primary" @click="addCat">创建</button>
         <button class="btn-cancel" @click="showAddCat = false">取消</button>
       </div>
@@ -100,7 +103,7 @@ const activeTab = ref("rss");
 const showAddRss = ref(false);
 const showAddCat = ref(false);
 const newRss = ref({ name: "", url: "", category: null as number | null });
-const newCat = ref({ name: "", icon: "📁" });
+const newCat = ref({ name: "", icon: "📁", lowMax: 3, midMax: 6, highMax: 10 });
 
 const rssLimit = computed(() => blogStore.config?.rss_source_limit || 40);
 const tabs = [
@@ -126,9 +129,21 @@ async function addRss() {
 
 async function addCat() {
   if (!newCat.value.name) return;
-  await blogStore.createCategory({ name: newCat.value.name, icon: newCat.value.icon, score_thresholds: { low: [1, 3], mid: [4, 6], high: [7, 10] } });
-  newCat.value = { name: "", icon: "📁" };
+  const { lowMax, midMax, highMax } = newCat.value;
+  await blogStore.createCategory({
+    name: newCat.value.name, icon: newCat.value.icon,
+    score_thresholds: { low: [1, lowMax], mid: [lowMax + 1, midMax], high: [midMax + 1, highMax] },
+  });
+  newCat.value = { name: "", icon: "📁", lowMax: 3, midMax: 6, highMax: 10 };
   showAddCat.value = false;
+}
+
+function updateThreshold(cat: any, level: string, idx: number, event: Event) {
+  const val = Number((event.target as HTMLInputElement).value);
+  const t = { ...cat.score_thresholds };
+  t[level] = [...t[level]];
+  t[level][idx] = val;
+  blogStore.updateCategory(cat.id, { score_thresholds: t });
 }
 
 async function handleFetchAll() {
@@ -186,11 +201,12 @@ function formatDate(dateStr: string) {
 }
 .cat-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .cat-count { font-size: 12px; color: var(--text-muted); }
-.thresholds { display: flex; gap: 16px; font-size: 13px; color: var(--text-secondary); }
+.thresholds { display: flex; gap: 16px; font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
 .threshold-input {
   width: 40px; padding: 4px; text-align: center; background: var(--input-bg);
   border: 1px solid var(--input-border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px;
 }
+.threshold-form-label { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
 .setting-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-secondary); }
 .setting-value { color: var(--text-primary); }
 .hint { font-size: 12px; color: var(--text-muted); margin-top: 12px; }
