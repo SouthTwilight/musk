@@ -34,7 +34,8 @@
             <textarea v-model="form.summary" class="edit-textarea" rows="5" />
           </template>
           <template v-else>
-            <div class="section-content editable" @click="focusField('summary')">{{ article.summary || '暂无总结（点击编辑）' }}</div>
+            <div v-if="article.summary" class="section-content md-render editable" @click="focusField('summary')" v-html="renderMd(article.summary)" />
+            <div v-else class="section-content editable placeholder" @click="focusField('summary')">暂无总结（点击编辑）</div>
           </template>
         </div>
 
@@ -52,7 +53,8 @@
                 </ul>
               </template>
               <template v-else>
-                <span class="editable" @click="focusField('key_points')">{{ article.key_points || '暂无要点（点击编辑）' }}</span>
+                <div v-if="article.key_points" class="md-render editable" @click="focusField('key_points')" v-html="renderMd(article.key_points)" />
+                <span v-else class="editable placeholder" @click="focusField('key_points')">暂无要点（点击编辑）</span>
               </template>
             </div>
           </template>
@@ -65,7 +67,8 @@
             <textarea v-model="form.deepAnalysis" class="edit-textarea" rows="8" />
           </template>
           <template v-else>
-            <div class="section-content editable" @click="focusField('deep_analysis')">{{ article.deep_analysis || '暂无分析（点击编辑）' }}</div>
+            <div v-if="article.deep_analysis" class="section-content md-render editable" @click="focusField('deep_analysis')" v-html="renderMd(article.deep_analysis)" />
+            <div v-else class="section-content editable placeholder" @click="focusField('deep_analysis')">暂无分析（点击编辑）</div>
           </template>
         </div>
       </div>
@@ -95,6 +98,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useBlogStore } from "@/stores/blog";
+import { marked } from "marked";
 
 const route = useRoute();
 const router = useRouter();
@@ -102,6 +106,12 @@ const blogStore = useBlogStore();
 const article = computed(() => blogStore.currentArticle);
 const iframeOk = ref(true);
 const editing = ref(false);
+
+marked.setOptions({ breaks: true, gfm: true });
+
+function renderMd(text: string): string {
+  return marked.parse(text) as string;
+}
 
 const form = ref({
   title: "",
@@ -248,6 +258,7 @@ async function handleReprocess() {
   transition: background 0.15s;
 }
 .editable:hover { background: rgba(110, 118, 129, 0.1); }
+.placeholder { color: var(--text-muted); font-style: italic; }
 .edit-input, .edit-textarea {
   width: 100%; background: var(--bg-primary); border: 1px solid var(--accent);
   border-radius: var(--radius-sm); color: var(--text-primary);
@@ -255,4 +266,38 @@ async function handleReprocess() {
   font-family: inherit; resize: vertical; outline: none;
 }
 .title-input { font-size: 20px; font-weight: 700; margin-bottom: 12px; padding: 6px 10px; }
+
+/* Markdown rendered content */
+.md-render { font-size: 14px; line-height: 1.8; color: var(--text-primary); word-break: break-word; }
+.md-render :deep(h1), .md-render :deep(h2), .md-render :deep(h3),
+.md-render :deep(h4), .md-render :deep(h5), .md-render :deep(h6) {
+  margin: 16px 0 8px; font-weight: 600; color: var(--text-primary);
+}
+.md-render :deep(h1) { font-size: 18px; }
+.md-render :deep(h2) { font-size: 16px; }
+.md-render :deep(h3) { font-size: 15px; }
+.md-render :deep(p) { margin: 6px 0; }
+.md-render :deep(ul), .md-render :deep(ol) { padding-left: 20px; margin: 6px 0; }
+.md-render :deep(li) { margin-bottom: 4px; }
+.md-render :deep(strong) { color: var(--text-primary); font-weight: 600; }
+.md-render :deep(em) { color: var(--text-secondary); }
+.md-render :deep(code) {
+  background: rgba(110, 118, 129, 0.15); padding: 2px 6px;
+  border-radius: 3px; font-size: 13px; font-family: monospace;
+}
+.md-render :deep(pre) {
+  background: rgba(110, 118, 129, 0.1); padding: 12px;
+  border-radius: var(--radius-sm); overflow-x: auto; margin: 8px 0;
+}
+.md-render :deep(pre code) { background: none; padding: 0; }
+.md-render :deep(blockquote) {
+  border-left: 3px solid var(--accent); padding-left: 12px;
+  margin: 8px 0; color: var(--text-secondary);
+}
+.md-render :deep(hr) { border: none; border-top: 1px solid var(--border-primary); margin: 12px 0; }
+.md-render :deep(table) { border-collapse: collapse; width: 100%; margin: 8px 0; }
+.md-render :deep(th), .md-render :deep(td) {
+  border: 1px solid var(--border-primary); padding: 6px 10px; text-align: left; font-size: 13px;
+}
+.md-render :deep(th) { background: rgba(110, 118, 129, 0.08); font-weight: 600; }
 </style>
