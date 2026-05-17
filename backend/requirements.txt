@@ -5,9 +5,9 @@ django-cors-headers==4.3.*
 python-dotenv==1.0.*
 pytest==8.2.*
 pytest-django==4.8.*
-Pillow>=10.0.*
-openai>=1.0.*
-feedparser>=6.0.*
-trafilatura>=1.8.*
-httpx>=0.27.*
-apscheduler>=3.10.*
+Pillow>=10.0.0
+openai>=1.0.0
+feedparser>=6.0.0
+trafilatura>=1.8.0
+httpx>=0.27.0
+apscheduler>=3.10.0
