@@ -8,11 +8,14 @@
         <button v-if="!editing" class="action-btn" @click="startEdit" title="编辑">✏️ 编辑</button>
         <button class="action-btn" @click="handleExport" title="导出 MD">📥 导出</button>
         <button class="action-btn" @click="handleReprocess" title="重新处理">🔄 重新处理</button>
+        <button v-if="article?.status !== 'failed'" class="action-btn" @click="toggleViewMode" title="切换视图">
+          {{ viewMode === 'notes' ? '📖 笔记模式' : '🌐 原文模式' }}
+        </button>
       </div>
     </div>
 
     <div v-if="!article" class="loading">加载中...</div>
-    <div v-else class="detail-body">
+    <div v-else class="detail-body" :class="{ 'notes-only': viewMode === 'notes' }">
       <div class="note-panel">
         <!-- Title -->
         <template v-if="editingField('title')">
@@ -83,7 +86,7 @@
           <a :href="article.url" target="_blank" class="open-link">在新标签页打开原文 →</a>
         </div>
         <template v-else>
-          <iframe v-if="iframeOk" :src="article.url" class="source-iframe" sandbox="allow-same-origin allow-popups" @error="iframeOk = false" />
+          <iframe v-if="iframeOk" :src="article.url" class="source-iframe" @error="iframeOk = false" />
           <div v-else class="cached-content">
             <div class="cached-notice">⚠️ iframe 加载失败，展示缓存内容</div>
             <pre class="cached-text">{{ article.raw_text }}</pre>
@@ -106,6 +109,7 @@ const blogStore = useBlogStore();
 const article = computed(() => blogStore.currentArticle);
 const iframeOk = ref(true);
 const editing = ref(false);
+const viewMode = ref<"notes" | "source">("notes");
 
 marked.setOptions({ breaks: true, gfm: true });
 
@@ -140,6 +144,10 @@ function cancelEdit() {
 
 function focusField(field: string) {
   startEdit();
+}
+
+function toggleViewMode() {
+  viewMode.value = viewMode.value === "notes" ? "source" : "notes";
 }
 
 function editingField(_field: string) {
@@ -208,6 +216,8 @@ async function handleReprocess() {
 .save-btn { border-color: #3fb950; color: #3fb950; }
 .save-btn:hover { background: rgba(63, 185, 80, 0.1); }
 .detail-body { display: flex; flex: 1; overflow: hidden; }
+.detail-body.notes-only .note-panel { width: 100%; border-right: none; max-width: 800px; margin: 0 auto; }
+.detail-body.notes-only .source-panel { display: none; }
 .note-panel { width: 33.33%; border-right: 1px solid var(--border-primary); padding: 24px; overflow-y: auto; }
 .article-title { font-size: 20px; color: var(--text-primary); margin-bottom: 12px; line-height: 1.4; }
 .article-meta { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; font-size: 13px; color: var(--text-secondary); flex-wrap: wrap; }
