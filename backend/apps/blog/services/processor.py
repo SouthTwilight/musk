@@ -107,7 +107,7 @@ def _generate_summary(text: str, model: str) -> str:
 def _generate_key_points(text: str, model: str) -> str:
     return _call_ai(
         [
-            {"role": "system", "content": "请提取以下文章的关键要点，以 JSON 数组格式返回，每项不超过30字。"},
+            {"role": "system", "content": "请提取以下文章的关键要点，以编号列表格式返回（每条一行，格式如：1. xxx），每项不超过30字。不要使用 JSON 格式，不要使用代码块包裹。"},
             {"role": "user", "content": text},
         ],
         model_name=model,

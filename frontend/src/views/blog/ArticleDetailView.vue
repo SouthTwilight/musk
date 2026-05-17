@@ -47,15 +47,8 @@
           </template>
           <template v-else>
             <div class="section-content">
-              <template v-if="parsedKeyPoints.length">
-                <ul class="points-list">
-                  <li v-for="(point, i) in parsedKeyPoints" :key="i">{{ point }}</li>
-                </ul>
-              </template>
-              <template v-else>
-                <div v-if="article.key_points" class="md-render editable" @click="focusField('key_points')" v-html="renderMd(article.key_points)" />
-                <span v-else class="editable placeholder" @click="focusField('key_points')">暂无要点（点击编辑）</span>
-              </template>
+              <div v-if="article.key_points" class="md-render editable" @click="focusField('key_points')" v-html="renderMd(article.key_points)" />
+              <span v-else class="editable placeholder" @click="focusField('key_points')">暂无要点（点击编辑）</span>
             </div>
           </template>
         </div>
@@ -123,14 +116,12 @@ const form = ref({
 function startEdit() {
   const a = article.value;
   if (!a) return;
-  let kpText = "";
-  if (a.key_points) {
-    try {
-      const cleaned = stripMdFence(a.key_points);
-      const parsed = JSON.parse(cleaned);
-      kpText = Array.isArray(parsed) ? parsed.join("\n") : a.key_points;
-    } catch { kpText = a.key_points; }
-  }
+  form.value = {
+    title: a.title,
+    summary: a.summary || "",
+    keyPointsText: a.key_points || "",
+    deepAnalysis: a.deep_analysis || "",
+  };
   form.value = {
     title: a.title,
     summary: a.summary || "",
@@ -154,13 +145,10 @@ function editingField(_field: string) {
 
 async function handleSave() {
   if (!article.value) return;
-  const keyPoints = form.value.keyPointsText
-    ? JSON.stringify(form.value.keyPointsText.split("\n").filter(Boolean))
-    : "";
   await blogStore.updateArticle(article.value.id, {
     title: form.value.title,
     summary: form.value.summary,
-    key_points: keyPoints,
+    key_points: form.value.keyPointsText,
     deep_analysis: form.value.deepAnalysis,
   });
   editing.value = false;
@@ -171,20 +159,6 @@ const scoreClass = computed(() => {
   if (article.value.score >= 7) return "score-high";
   if (article.value.score >= 4) return "score-mid";
   return "score-low";
-});
-
-function stripMdFence(text: string): string {
-  return text.replace(/^```[\w]*\n?/i, "").replace(/\n?```\s*$/, "").trim();
-}
-
-const parsedKeyPoints = computed(() => {
-  const kp = article.value?.key_points;
-  if (!kp) return [];
-  try {
-    const cleaned = stripMdFence(kp);
-    const parsed = JSON.parse(cleaned);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch { return []; }
 });
 
 onMounted(() => {
