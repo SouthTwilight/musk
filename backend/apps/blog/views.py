@@ -92,6 +92,9 @@ class ArticleDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return Article.objects.using(_get_db()).all()
 
+    def perform_update(self, serializer):
+        serializer.save(using=_get_db())
+
 
 class FetchURLView(APIView):
     """手动粘贴 URL 抓取文章。"""
