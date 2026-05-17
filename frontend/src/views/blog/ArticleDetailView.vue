@@ -131,12 +131,6 @@ function startEdit() {
     deepAnalysis: a.deep_analysis || "",
     categoryId: a.category,
   };
-  form.value = {
-    title: a.title,
-    summary: a.summary || "",
-    keyPointsText: kpText,
-    deepAnalysis: a.deep_analysis || "",
-  };
   editing.value = true;
 }
 

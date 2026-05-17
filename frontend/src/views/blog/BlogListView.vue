@@ -2,7 +2,10 @@
   <div class="blog-list">
     <div class="list-header">
       <h1>知识笔记</h1>
-      <button class="add-btn" @click="showAddUrl = true">+ 添加链接</button>
+      <div class="header-actions">
+        <button class="settings-btn" @click="router.push('/blog/settings')">⚙ 设置</button>
+        <button class="add-btn" @click="showAddUrl = true">+ 添加链接</button>
+      </div>
     </div>
 
     <div class="filter-bar">
@@ -96,6 +99,12 @@ function formatDate(dateStr: string) {
   padding: 8px 16px; background: var(--btn-primary-bg); border: none;
   border-radius: var(--radius-sm); color: var(--btn-primary-text); cursor: pointer; font-size: 13px;
 }
+.header-actions { display: flex; gap: 8px; }
+.settings-btn {
+  padding: 8px 16px; background: transparent; border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; font-size: 13px;
+}
+.settings-btn:hover { border-color: var(--accent); color: var(--accent); }
 .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
 .filter-chip {
   padding: 6px 14px; background: transparent; border: 1px solid var(--border-primary);
