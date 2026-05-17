@@ -63,6 +63,15 @@ class ArticleDetailSerializer(ArticleListSerializer):
             "key_points", "deep_analysis", "raw_text",
         )
 
+    def update(self, instance, validated_data):
+        validated_data.pop("category_name", None)
+        validated_data.pop("category_icon", None)
+        using = validated_data.pop("using", "default")
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save(using=using)
+        return instance
+
 
 class FailedURLSerializer(serializers.ModelSerializer):
     class Meta:

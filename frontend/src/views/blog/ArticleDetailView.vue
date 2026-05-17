@@ -3,6 +3,9 @@
     <div class="detail-header">
       <button class="back-btn" @click="router.push('/blog')">← 返回</button>
       <div class="header-actions">
+        <button v-if="editing" class="action-btn save-btn" @click="handleSave" title="保存">✓ 保存</button>
+        <button v-if="editing" class="action-btn" @click="cancelEdit" title="取消">✗ 取消</button>
+        <button v-if="!editing" class="action-btn" @click="startEdit" title="编辑">✏️ 编辑</button>
         <button class="action-btn" @click="handleExport" title="导出 MD">📥 导出</button>
         <button class="action-btn" @click="handleReprocess" title="重新处理">🔄 重新处理</button>
       </div>
@@ -11,32 +14,59 @@
     <div v-if="!article" class="loading">加载中...</div>
     <div v-else class="detail-body">
       <div class="note-panel">
-        <h1 class="article-title">{{ article.title }}</h1>
+        <!-- Title -->
+        <template v-if="editingField('title')">
+          <input v-model="form.title" class="edit-input title-input" />
+        </template>
+        <template v-else>
+          <h1 class="article-title editable" @click="focusField('title')">{{ form.title }}</h1>
+        </template>
+
         <div class="article-meta">
           <span>Source: <a :href="article.url" target="_blank">{{ article.source_name }}</a></span>
           <span v-if="article.score" class="score-badge" :class="scoreClass">⭐ {{ article.score }}/10</span>
         </div>
 
+        <!-- Summary -->
         <div class="note-section">
           <h3 class="section-label summary-label">📋 Summary</h3>
-          <div class="section-content">{{ article.summary || '暂无总结' }}</div>
+          <template v-if="editing">
+            <textarea v-model="form.summary" class="edit-textarea" rows="5" />
+          </template>
+          <template v-else>
+            <div class="section-content editable" @click="focusField('summary')">{{ article.summary || '暂无总结（点击编辑）' }}</div>
+          </template>
         </div>
 
+        <!-- Key Points -->
         <div class="note-section">
           <h3 class="section-label points-label">🔑 Key Points</h3>
-          <div class="section-content">
-            <template v-if="parsedKeyPoints.length">
-              <ul class="points-list">
-                <li v-for="(point, i) in parsedKeyPoints" :key="i">{{ point }}</li>
-              </ul>
-            </template>
-            <template v-else>{{ article.key_points || '暂无要点' }}</template>
-          </div>
+          <template v-if="editing">
+            <textarea v-model="form.keyPointsText" class="edit-textarea" rows="6" placeholder="每行一个要点" />
+          </template>
+          <template v-else>
+            <div class="section-content">
+              <template v-if="parsedKeyPoints.length">
+                <ul class="points-list">
+                  <li v-for="(point, i) in parsedKeyPoints" :key="i">{{ point }}</li>
+                </ul>
+              </template>
+              <template v-else>
+                <span class="editable" @click="focusField('key_points')">{{ article.key_points || '暂无要点（点击编辑）' }}</span>
+              </template>
+            </div>
+          </template>
         </div>
 
-        <div v-if="article.deep_analysis" class="note-section">
+        <!-- Deep Analysis -->
+        <div v-if="article.deep_analysis || editing" class="note-section">
           <h3 class="section-label analysis-label">🔬 Deep Analysis</h3>
-          <div class="section-content">{{ article.deep_analysis }}</div>
+          <template v-if="editing">
+            <textarea v-model="form.deepAnalysis" class="edit-textarea" rows="8" />
+          </template>
+          <template v-else>
+            <div class="section-content editable" @click="focusField('deep_analysis')">{{ article.deep_analysis || '暂无分析（点击编辑）' }}</div>
+          </template>
         </div>
       </div>
 
@@ -71,6 +101,59 @@ const router = useRouter();
 const blogStore = useBlogStore();
 const article = computed(() => blogStore.currentArticle);
 const iframeOk = ref(true);
+const editing = ref(false);
+
+const form = ref({
+  title: "",
+  summary: "",
+  keyPointsText: "",
+  deepAnalysis: "",
+});
+
+function startEdit() {
+  const a = article.value;
+  if (!a) return;
+  let kpText = "";
+  if (a.key_points) {
+    try {
+      const parsed = JSON.parse(a.key_points);
+      kpText = Array.isArray(parsed) ? parsed.join("\n") : a.key_points;
+    } catch { kpText = a.key_points; }
+  }
+  form.value = {
+    title: a.title,
+    summary: a.summary || "",
+    keyPointsText: kpText,
+    deepAnalysis: a.deep_analysis || "",
+  };
+  editing.value = true;
+}
+
+function cancelEdit() {
+  editing.value = false;
+}
+
+function focusField(field: string) {
+  startEdit();
+}
+
+function editingField(_field: string) {
+  return editing.value;
+}
+
+async function handleSave() {
+  if (!article.value) return;
+  const keyPoints = form.value.keyPointsText
+    ? JSON.stringify(form.value.keyPointsText.split("\n").filter(Boolean))
+    : "";
+  await blogStore.updateArticle(article.value.id, {
+    title: form.value.title,
+    summary: form.value.summary,
+    key_points: keyPoints,
+    deep_analysis: form.value.deepAnalysis,
+  });
+  editing.value = false;
+}
 
 const scoreClass = computed(() => {
   if (!article.value?.score) return "";
@@ -127,6 +210,8 @@ async function handleReprocess() {
   border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; font-size: 12px;
 }
 .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+.save-btn { border-color: #3fb950; color: #3fb950; }
+.save-btn:hover { background: rgba(63, 185, 80, 0.1); }
 .detail-body { display: flex; flex: 1; overflow: hidden; }
 .note-panel { width: 33.33%; border-right: 1px solid var(--border-primary); padding: 24px; overflow-y: auto; }
 .article-title { font-size: 20px; color: var(--text-primary); margin-bottom: 12px; line-height: 1.4; }
@@ -153,4 +238,21 @@ async function handleReprocess() {
 .unparsable-notice p { margin-bottom: 12px; }
 .open-link { color: var(--accent); font-size: 14px; }
 .loading { padding: 60px; text-align: center; color: var(--text-secondary); }
+
+/* Editable fields */
+.editable {
+  cursor: text;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  transition: background 0.15s;
+}
+.editable:hover { background: rgba(110, 118, 129, 0.1); }
+.edit-input, .edit-textarea {
+  width: 100%; background: var(--bg-primary); border: 1px solid var(--accent);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  font-size: 14px; padding: 8px 10px; line-height: 1.6;
+  font-family: inherit; resize: vertical; outline: none;
+}
+.title-input { font-size: 20px; font-weight: 700; margin-bottom: 12px; padding: 6px 10px; }
 </style>

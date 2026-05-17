@@ -136,6 +136,14 @@ export const useBlogStore = defineStore("blog", () => {
     articles.value = articles.value.filter((a) => a.id !== id);
   }
 
+  async function updateArticle(id: number, payload: Partial<Article>) {
+    const { data } = await api.patch(`/blog/articles/${id}/`, payload);
+    if (currentArticle.value?.id === id) currentArticle.value = data;
+    const idx = articles.value.findIndex((a) => a.id === id);
+    if (idx !== -1) articles.value[idx] = data;
+    return data;
+  }
+
   async function exportArticle(id: number) {
     const { data } = await api.post(
       `/blog/articles/${id}/export/`,
@@ -177,7 +185,7 @@ export const useBlogStore = defineStore("blog", () => {
     fetchCategories, createCategory, updateCategory, deleteCategory,
     fetchRSSSources, createRSSSource, updateRSSSource, deleteRSSSource,
     fetchArticles, fetchArticle, fetchUrl, reprocessArticle,
-    deleteArticle, exportArticle,
+    deleteArticle, updateArticle, exportArticle,
     fetchConfig, updateConfig,
     fetchFailedUrls, deleteFailedUrl,
     fetchAll,

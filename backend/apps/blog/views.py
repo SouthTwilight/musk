@@ -86,7 +86,7 @@ class ArticleListView(generics.ListAPIView):
         return qs
 
 
-class ArticleDetailView(generics.RetrieveDestroyAPIView):
+class ArticleDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ArticleDetailSerializer
 
     def get_queryset(self):
