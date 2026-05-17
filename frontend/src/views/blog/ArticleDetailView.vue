@@ -76,7 +76,7 @@
         </div>
       </div>
 
-      <div class="source-panel">
+      <div v-if="viewMode === 'source'" class="source-panel">
         <div v-if="article.status === 'failed'" class="unparsable-notice">
           <p>✗ 链接无法访问</p>
           <a :href="article.url" target="_blank" class="open-link">尝试在新标签页打开 →</a>
@@ -217,7 +217,6 @@ async function handleReprocess() {
 .save-btn:hover { background: rgba(63, 185, 80, 0.1); }
 .detail-body { display: flex; flex: 1; overflow: hidden; }
 .detail-body.notes-only .note-panel { width: 100%; border-right: none; max-width: 800px; margin: 0 auto; }
-.detail-body.notes-only .source-panel { display: none; }
 .note-panel { width: 33.33%; border-right: 1px solid var(--border-primary); padding: 24px; overflow-y: auto; }
 .article-title { font-size: 20px; color: var(--text-primary); margin-bottom: 12px; line-height: 1.4; }
 .article-meta { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; font-size: 13px; color: var(--text-secondary); flex-wrap: wrap; }
