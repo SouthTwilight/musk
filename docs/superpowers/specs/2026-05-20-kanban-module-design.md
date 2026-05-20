@@ -170,6 +170,8 @@ hybrid 任务:
 | GET | `/projects/{id}/artifacts/` | 项目级制品列表（全部任务） |
 | PATCH | `/artifacts/{id}/` | 更新制品 |
 | DELETE | `/artifacts/{id}/` | 删除制品 |
+| GET | `/artifacts/{id}/export/` | 导出单个制品（下载 .md 文件） |
+| GET | `/projects/{id}/artifacts/export/` | 导出项目全部制品（打包下载 .md 文件） |
 
 ### 模块配置
 
@@ -178,7 +180,7 @@ hybrid 任务:
 | GET | `/config/` | 获取配置 |
 | PATCH | `/config/` | 更新配置 |
 
-共 5 组，16 个端点。
+共 5 组，18 个端点。
 
 ---
 
@@ -242,6 +244,35 @@ hybrid 任务:
 ai_model: "deepseek-chat"
 ai_system_prompt: "你是一个项目管理助手。请根据提供的项目上下文和任务要求，产出结构化的文本制品。输出使用 Markdown 格式。"
 ```
+
+### 制品导出
+
+**单个制品导出** (`GET /artifacts/{id}/export/`)：
+- 返回 `.md` 文件下载响应（Content-Disposition: attachment）
+- 文件名格式：`{任务标题}-{制品标题}.md`
+
+**项目全量导出** (`GET /projects/{id}/artifacts/export/`)：
+- 将项目所有制品按任务分组，拼接为一个 `.md` 文件下载
+- 文件结构：
+
+```markdown
+# {项目名称} — 全部制品
+
+## 任务: {任务标题1}
+
+### 制品: {制品标题1.1}
+{制品内容}
+
+### 制品: {制品标题1.2}
+{制品内容}
+
+## 任务: {任务标题2}
+...
+```
+
+- 文件名格式：`{项目名称}-全部制品.md`
+
+前端在任务详情面板和项目看板工具栏中提供导出按钮。
 
 ### 错误处理
 
